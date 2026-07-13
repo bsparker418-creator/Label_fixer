@@ -12,7 +12,9 @@ Run with:
 
 from __future__ import annotations
 
+import sys
 import tkinter as tk
+from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 
 import fitz  # PyMuPDF
@@ -23,12 +25,21 @@ import core
 PREVIEW_DPI = 150
 PREVIEW_MAX_SIZE = (380, 560)  # px, keeps the window a sane size
 
+# Works both run from source (uv run python gui.py) and when frozen into
+# a standalone exe with PyInstaller (--add-data "icon.ico;.").
+ICON_PATH = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent)) / "icon.ico"
+
 
 class LabelPrintApp(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
         self.title("Shipping Label Printer")
         self.resizable(False, False)
+        if ICON_PATH.exists():
+            try:
+                self.iconbitmap(str(ICON_PATH))
+            except tk.TclError:
+                pass  # .ico icons aren't supported on non-Windows Tk builds
 
         self.pdf_path: str | None = None
         self.page_count = 1
