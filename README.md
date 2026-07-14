@@ -6,8 +6,9 @@ printer's own native resolution — no snip/Paint/rotate steps, which is
 what was blurring the barcodes.
 
 Two ways to use it:
-- `gui.py` — point-and-click app: pick a PDF, see a preview of exactly
-  what will print, pick a printer, hit Print.
+- `gui.py` — point-and-click app: add one or more PDFs, flip between
+  them, see a side-by-side Original/Fixed preview of exactly what will
+  print, pick a printer, hit Print.
 - `label_print.py` — command-line version, same engine, scriptable.
 
 Both share the same extraction/printing logic in `core.py`.
@@ -17,9 +18,10 @@ Both share the same extraction/printing logic in `core.py`.
 Carrier PDFs (USPS/UPS/FedEx/PirateShip/Shopify, etc.) commonly hand you
 a full Letter-size page with the actual 4x6 label rotated into a corner
 of it — that's the part that prints tiny/fuzzy if you just hit Ctrl+P.
-`examples/sample_label_raw.pdf` is a synthetic label (fake name/address/
-tracking number, not a real shipment) in exactly that shape, so you can
-try the app immediately without needing a real label.
+`examples/sample_label_raw.pdf` and `examples/sample_label_raw_2.pdf`
+are synthetic labels (fake names/addresses/tracking numbers, not real
+shipments) in exactly that shape, so you can try the app immediately
+without needing a real label.
 
 **Before** — the raw PDF as a carrier gives it to you:
 
@@ -29,16 +31,19 @@ try the app immediately without needing a real label.
 
 <img src="examples/after_corrected_label.png" width="220" alt="Corrected, upright 4x6 label">
 
-**The GUI**, after clicking Browse and selecting the sample file — the
-preview pane already shows the corrected version:
+**The GUI**, with both sample files loaded — the "Viewing" bar lets you
+flip between loaded files with **‹ Prev** / **Next ›** (or the dropdown),
+and the Preview card always shows **Original** next to **Fixed** so you
+can see what changed before you print:
 
-<img src="examples/gui_screenshot.png" width="420" alt="GUI showing the corrected label preview">
+<img src="examples/gui_screenshot.png" width="440" alt="GUI showing the file switcher and side-by-side original/fixed preview">
 
 Try it yourself:
 ```
 uv run python gui.py
 ```
-then Browse to `examples/sample_label_raw.pdf`.
+then **Add files...** and select both `examples/sample_label_raw.pdf`
+and `examples/sample_label_raw_2.pdf` to try the file switcher.
 
 ## Setup (one time)
 
@@ -57,14 +62,21 @@ uv run python gui.py
 ```
 or double-click **LabelFixer.bat**.
 
-1. **Browse...** to pick the shipping-label PDF.
-2. The app auto-crops and rotates it and shows a live preview — this is
-   exactly what will be sent to the printer. If the rotation guessed
-   wrong, change the **Rotation** dropdown and the preview updates.
-3. Pick the **Printer** and **Copies**, check **Print all pages** for a
-   multi-label PDF, then click **Print**.
-4. **Save corrected PDF...** exports a cropped/rotated vector PDF as a
-   fallback you can print from any PDF viewer at "Actual Size / 100%".
+1. **Add files...** to load one or more shipping-label PDFs (multi-select
+   is supported).
+2. Use the **Viewing** bar to flip between loaded files with **‹ Prev**
+   / **Next ›**, jump directly via the dropdown, or **Remove** the one
+   currently shown.
+3. The **Preview** card shows **Original (as received)** next to
+   **Fixed (what will print)** for whichever file is selected. If the
+   rotation guessed wrong, change the **Rotation** dropdown and both
+   previews update.
+4. Pick the **Printer** and **Copies**. Check **Print all pages in this
+   file** for a multi-page PDF, or **Print every loaded file** to batch
+   through everything you've added, then click **Print**.
+5. **Save corrected PDF...** exports a cropped/rotated vector PDF for
+   the currently viewed file as a fallback you can print from any PDF
+   viewer at "Actual Size / 100%".
 
 ## CLI
 
