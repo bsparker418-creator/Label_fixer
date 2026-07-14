@@ -130,7 +130,7 @@ class LabelPrintApp(tk.Tk):
     def _card(self, parent: tk.Misc, title: str) -> tk.Frame:
         """A flat white 'card' with a thin border and a bold section title."""
         outer = tk.Frame(parent, bg=BG)
-        outer.pack(fill="x", padx=20, pady=(0, 14))
+        outer.pack(fill="x", pady=(0, 14))
 
         card = tk.Frame(outer, bg=CARD_BG, highlightbackground=BORDER, highlightthickness=1, bd=0)
         card.pack(fill="both", expand=True)
@@ -159,7 +159,7 @@ class LabelPrintApp(tk.Tk):
         self.update_idletasks()
         w, h = self.winfo_width(), self.winfo_height()
         x = (self.winfo_screenwidth() - w) // 2
-        y = (self.winfo_screenheight() - h) // 3
+        y = max(0, (self.winfo_screenheight() - h) // 3)
         self.geometry(f"+{x}+{y}")
 
     # -- UI construction ---------------------------------------------------
@@ -173,8 +173,23 @@ class LabelPrintApp(tk.Tk):
             bg=BG, fg=TEXT_MUTED, font=self.f_subtitle,
         ).pack(anchor="w", pady=(2, 0))
 
-        # 1. Source files
-        card1 = self._card(self, "Source PDFs")
+        # Two-pane layout: file management + preview on the left, the
+        # Print card pinned to the right so it's always fully visible
+        # regardless of how tall the preview column gets.
+        content = tk.Frame(self, bg=BG)
+        content.pack(fill="both", expand=True, padx=20, pady=(0, 20))
+        content.grid_columnconfigure(0, weight=1)
+        content.grid_columnconfigure(1, weight=0)
+        content.grid_rowconfigure(0, weight=1)
+
+        left = tk.Frame(content, bg=BG)
+        left.grid(row=0, column=0, sticky="nsew", padx=(0, 14))
+
+        right = tk.Frame(content, bg=BG)
+        right.grid(row=0, column=1, sticky="n")
+
+        # 1. Source files (left)
+        card1 = self._card(left, "Source PDFs")
         add_row = tk.Frame(card1, bg=CARD_BG)
         add_row.pack(fill="x", padx=16, pady=(0, 16))
         ttk.Button(add_row, text="Add files...", style="Secondary.TButton", command=self.on_add_files).pack(side="left")
@@ -183,7 +198,7 @@ class LabelPrintApp(tk.Tk):
 
         # 1.5 Quick file switcher -- sits between Source PDFs and Preview
         # so it's obvious it controls which file the Preview below shows.
-        nav_card = self._card(self, "Viewing")
+        nav_card = self._card(left, "Viewing")
         nav_row = tk.Frame(nav_card, bg=CARD_BG)
         nav_row.pack(fill="x", padx=16, pady=(0, 8))
 
@@ -203,8 +218,8 @@ class LabelPrintApp(tk.Tk):
         self.path_label = tk.Label(nav_card, text="No files loaded", bg=CARD_BG, fg=TEXT_MUTED, font=self.f_small, anchor="w", wraplength=520)
         self.path_label.pack(fill="x", padx=16, pady=(0, 16))
 
-        # 2. Preview (Original next to Fixed)
-        card2 = self._card(self, "Preview")
+        # 2. Preview (Original next to Fixed) (left)
+        card2 = self._card(left, "Preview")
         columns = tk.Frame(card2, bg=CARD_BG)
         columns.pack(padx=16, pady=(0, 4))
 
@@ -236,33 +251,34 @@ class LabelPrintApp(tk.Tk):
         self.status_label = tk.Label(card2, text="", bg=CARD_BG, fg=TEXT_MUTED, font=self.f_small, anchor="w", justify="left")
         self.status_label.pack(fill="x", padx=16, pady=(10, 16))
 
-        # 3. Printer + print
-        card3 = self._card(self, "Print")
-        row = tk.Frame(card3, bg=CARD_BG)
-        row.pack(fill="x", padx=16)
+        # 3. Printer + print (right pane, always fully visible)
+        card3 = self._card(right, "Print")
 
-        tk.Label(row, text="Printer", bg=CARD_BG, fg=TEXT_MUTED, font=self.f_small).grid(row=0, column=0, sticky="w")
+        printer_row = tk.Frame(card3, bg=CARD_BG)
+        printer_row.pack(fill="x", padx=16)
+        tk.Label(printer_row, text="Printer", bg=CARD_BG, fg=TEXT_MUTED, font=self.f_small).pack(anchor="w")
         self.printer_var = tk.StringVar()
-        self.printer_menu = ttk.Combobox(row, textvariable=self.printer_var, state="readonly", width=24)
-        self.printer_menu.grid(row=1, column=0, sticky="we", padx=(0, 16))
-        row.grid_columnconfigure(0, weight=1)
+        self.printer_menu = ttk.Combobox(printer_row, textvariable=self.printer_var, state="readonly", width=26)
+        self.printer_menu.pack(fill="x", pady=(2, 12))
 
-        tk.Label(row, text="Copies", bg=CARD_BG, fg=TEXT_MUTED, font=self.f_small).grid(row=0, column=1, sticky="w")
+        copies_row = tk.Frame(card3, bg=CARD_BG)
+        copies_row.pack(fill="x", padx=16)
+        tk.Label(copies_row, text="Copies", bg=CARD_BG, fg=TEXT_MUTED, font=self.f_small).pack(anchor="w")
         self.copies_var = tk.IntVar(value=1)
-        ttk.Spinbox(row, from_=1, to=99, width=4, textvariable=self.copies_var).grid(row=1, column=1, sticky="w")
+        ttk.Spinbox(copies_row, from_=1, to=99, width=6, textvariable=self.copies_var).pack(anchor="w", pady=(2, 12))
 
         checks = tk.Frame(card3, bg=CARD_BG)
-        checks.pack(anchor="w", padx=16, pady=(14, 4))
+        checks.pack(anchor="w", fill="x", padx=16, pady=(2, 4))
         self.all_pages_var = tk.BooleanVar(value=False)
         ttk.Checkbutton(checks, text="Print all pages in this file", variable=self.all_pages_var).pack(anchor="w")
         self.all_files_var = tk.BooleanVar(value=False)
-        ttk.Checkbutton(checks, text="Print every loaded file", variable=self.all_files_var).pack(anchor="w")
+        ttk.Checkbutton(checks, text="Print every loaded file", variable=self.all_files_var).pack(anchor="w", pady=(4, 0))
 
-        button_row = tk.Frame(card3, bg=CARD_BG)
-        button_row.pack(fill="x", padx=16, pady=(10, 16))
-        ttk.Button(button_row, text="Save corrected PDF...", style="Secondary.TButton", command=self.on_save_pdf).pack(side="left")
-        self.print_button = ttk.Button(button_row, text="Print", style="Accent.TButton", command=self.on_print, state="disabled")
-        self.print_button.pack(side="right")
+        button_col = tk.Frame(card3, bg=CARD_BG)
+        button_col.pack(fill="x", padx=16, pady=(16, 16))
+        self.print_button = ttk.Button(button_col, text="Print", style="Accent.TButton", command=self.on_print, state="disabled")
+        self.print_button.pack(fill="x")
+        ttk.Button(button_col, text="Save corrected PDF...", style="Secondary.TButton", command=self.on_save_pdf).pack(fill="x", pady=(8, 0))
 
     # -- Helpers -------------------------------------------------------------
 

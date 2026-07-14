@@ -33,10 +33,12 @@ without needing a real label.
 
 **The GUI**, with both sample files loaded — the "Viewing" bar lets you
 flip between loaded files with **‹ Prev** / **Next ›** (or the dropdown),
-and the Preview card always shows **Original** next to **Fixed** so you
-can see what changed before you print:
+the Preview card always shows **Original** next to **Fixed** so you can
+see what changed before you print, and **Print** is pinned in its own
+pane on the right so it's always fully visible no matter how tall the
+preview gets:
 
-<img src="examples/gui_app.png" width="440" alt="GUI showing the file switcher and side-by-side original/fixed preview">
+<img src="examples/gui_app.png" width="720" alt="GUI showing the file switcher, side-by-side original/fixed preview, and the Print pane on the right">
 
 Try it yourself:
 ```
@@ -71,9 +73,10 @@ or double-click **LabelFixer.bat**.
    **Fixed (what will print)** for whichever file is selected. If the
    rotation guessed wrong, change the **Rotation** dropdown and both
    previews update.
-4. Pick the **Printer** and **Copies**. Check **Print all pages in this
-   file** for a multi-page PDF, or **Print every loaded file** to batch
-   through everything you've added, then click **Print**.
+4. The **Print** pane on the right holds the **Printer** and **Copies**
+   controls. Check **Print all pages in this file** for a multi-page
+   PDF, or **Print every loaded file** to batch through everything
+   you've added, then click **Print**.
 5. **Save corrected PDF...** exports a cropped/rotated vector PDF for
    the currently viewed file as a fallback you can print from any PDF
    viewer at "Actual Size / 100%".
