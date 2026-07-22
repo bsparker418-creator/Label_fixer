@@ -2,18 +2,17 @@
 core.py - Shared label extraction / rendering / printing logic used by
 both the CLI (label_print.py) and the GUI (gui.py).
 
-Kept dependency-light and importable on any OS: the PyMuPDF/Pillow/numpy
-based functions (find_ink_bbox, correct_page, render_page) work
-everywhere. The pywin32-based functions (get_printers, get_printer_dpi,
-print_image) only work on Windows and import pywin32 lazily so this
-module still imports cleanly elsewhere (e.g. for --preview / --save-pdf
-only usage, or running the GUI's preview pane on a dev machine).
+Kept dependency-light and importable on any OS: the PyMuPDF/Pillow based
+functions (find_ink_bbox, correct_page, render_page) work everywhere. The
+pywin32-based functions (get_printers, get_printer_dpi, print_image) only
+work on Windows and import pywin32 lazily so this module still imports
+cleanly elsewhere (e.g. for --preview / --save-pdf only usage, or running
+the GUI's preview pane on a dev machine).
 """
 
 from __future__ import annotations
 
 import fitz  # PyMuPDF
-import numpy as np
 from PIL import Image
 
 ROTATE_MAP = {"none": 0, "cw": 90, "ccw": 270, "180": 180}
@@ -30,24 +29,34 @@ def find_ink_bbox(page: fitz.Page, scan_dpi: int = 150, ink_threshold: int = 250
     pix = page.get_pixmap(dpi=scan_dpi)
     mode = "RGB" if pix.n < 4 else "RGBA"
     img = Image.frombytes(mode, (pix.width, pix.height), pix.samples).convert("L")
-    arr = np.array(img)
-    mask = arr < ink_threshold
-    ys, xs = np.where(mask)
-    if len(xs) == 0:
+    # Invert so ink (dark, below threshold) becomes non-zero and the
+    # background (light) becomes zero, then getbbox() finds the bounding
+    # box of non-zero pixels -- no numpy needed.
+    mask = img.point(lambda p: 255 if p < ink_threshold else 0)
+    bbox = mask.getbbox()
+    if bbox is None:
         return page.rect
+    x0px, y0px, x1px, y1px = bbox
     scale = 72 / scan_dpi
     pad = 3  # points of padding so we don't clip anti-aliased edges
-    x0 = max(page.rect.x0, xs.min() * scale - pad)
-    x1 = min(page.rect.x1, xs.max() * scale + pad)
-    y0 = max(page.rect.y0, ys.min() * scale - pad)
-    y1 = min(page.rect.y1, ys.max() * scale + pad)
+    x0 = max(page.rect.x0, x0px * scale - pad)
+    x1 = min(page.rect.x1, x1px * scale + pad)
+    y0 = max(page.rect.y0, y0px * scale - pad)
+    y1 = min(page.rect.y1, y1px * scale + pad)
     return fitz.Rect(x0, y0, x1, y1)
 
 
-def correct_page(page: fitz.Page, rotate: str = "auto", scan_dpi: int = 150, ink_threshold: int = 250) -> int:
+def correct_page(
+    page: fitz.Page, rotate: str = "auto", extra_rotation: int = 0,
+    scan_dpi: int = 150, ink_threshold: int = 250,
+) -> int:
     """Crop the page to just the label's ink, and rotate it upright.
     Mutates the page in place (crop box + /Rotate), keeping everything
-    vector. Returns the rotation (degrees) that was applied."""
+    vector. `extra_rotation` (0/90/180/270) is added on top of whatever
+    `rotate` resolves to -- this is what backs the GUI's rotate-left/
+    rotate-right nudge buttons: the label is still auto-oriented first,
+    then nudged by increments from there. Returns the final rotation
+    (degrees) that was applied."""
     bbox = find_ink_bbox(page, scan_dpi=scan_dpi, ink_threshold=ink_threshold)
     page.set_cropbox(bbox)
 
@@ -59,17 +68,20 @@ def correct_page(page: fitz.Page, rotate: str = "auto", scan_dpi: int = 150, ink
     else:
         degrees = ROTATE_MAP[rotate]
 
+    degrees = (degrees + extra_rotation) % 360
     page.set_rotation(degrees)
     return degrees
 
 
-def open_corrected_page(pdf_path: str, page_index: int = 0, rotate: str = "auto") -> tuple[fitz.Document, fitz.Page]:
+def open_corrected_page(
+    pdf_path: str, page_index: int = 0, rotate: str = "auto", extra_rotation: int = 0,
+) -> tuple[fitz.Document, fitz.Page]:
     """Open a fresh document and apply correct_page to the requested
     page. Returns (doc, page) -- caller should keep doc alive as long as
     page is used, and close it when done."""
     doc = fitz.open(pdf_path)
     page = doc[page_index]
-    correct_page(page, rotate=rotate)
+    correct_page(page, rotate=rotate, extra_rotation=extra_rotation)
     return doc, page
 
 

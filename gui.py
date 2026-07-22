@@ -58,6 +58,7 @@ class LabelPrintApp(tk.Tk):
         self.files: list[str] = []
         self.current_index: int = -1
         self.page_count = 1
+        self.extra_rotation = 0  # 0/90/180/270, nudged by the rotate buttons
         # Keep PhotoImage references alive (Tk drops images with no ref).
         self.original_photo: ImageTk.PhotoImage | None = None
         self.fixed_photo: ImageTk.PhotoImage | None = None
@@ -77,6 +78,7 @@ class LabelPrintApp(tk.Tk):
         self.f_body = tkfont.Font(family="Segoe UI", size=10)
         self.f_small = tkfont.Font(family="Segoe UI", size=9)
         self.f_button = tkfont.Font(family="Segoe UI", size=10, weight="bold")
+        self.f_icon = tkfont.Font(family="Segoe UI", size=13, weight="bold")
 
     def _build_style(self) -> None:
         style = ttk.Style(self)
@@ -111,6 +113,17 @@ class LabelPrintApp(tk.Tk):
         )
         style.map(
             "Nav.TButton",
+            background=[("active", PREVIEW_BG), ("disabled", CARD_BG)],
+            foreground=[("disabled", BORDER)],
+            bordercolor=[("!disabled", BORDER)],
+        )
+
+        style.configure(
+            "Icon.TButton", background=CARD_BG, foreground=TEXT,
+            font=self.f_icon, padding=(8, 4), borderwidth=1, relief="solid",
+        )
+        style.map(
+            "Icon.TButton",
             background=[("active", PREVIEW_BG), ("disabled", CARD_BG)],
             foreground=[("disabled", BORDER)],
             bordercolor=[("!disabled", BORDER)],
@@ -240,13 +253,21 @@ class LabelPrintApp(tk.Tk):
         self.page_spin.grid(row=1, column=0, sticky="w", padx=(0, 20))
 
         tk.Label(options_frame, text="Rotation", bg=CARD_BG, fg=TEXT_MUTED, font=self.f_small).grid(row=0, column=1, sticky="w")
-        self.rotate_var = tk.StringVar(value="auto")
-        rotate_menu = ttk.Combobox(
-            options_frame, textvariable=self.rotate_var, state="readonly", width=10,
-            values=["auto", "cw", "ccw", "180", "none"],
+        rotate_row = tk.Frame(options_frame, bg=CARD_BG)
+        rotate_row.grid(row=1, column=1, sticky="w")
+
+        self.rotate_left_button = ttk.Button(
+            rotate_row, text="↶", style="Icon.TButton", width=2, command=self.on_rotate_left,
         )
-        rotate_menu.grid(row=1, column=1, sticky="w")
-        rotate_menu.bind("<<ComboboxSelected>>", lambda _e: self.refresh_preview())
+        self.rotate_left_button.pack(side="left")
+
+        self.rotation_label = tk.Label(rotate_row, text="0°", bg=CARD_BG, fg=TEXT_MUTED, font=self.f_small, width=4, anchor="center")
+        self.rotation_label.pack(side="left", padx=4)
+
+        self.rotate_right_button = ttk.Button(
+            rotate_row, text="↷", style="Icon.TButton", width=2, command=self.on_rotate_right,
+        )
+        self.rotate_right_button.pack(side="left")
 
         self.status_label = tk.Label(card2, text="", bg=CARD_BG, fg=TEXT_MUTED, font=self.f_small, anchor="w", justify="left")
         self.status_label.pack(fill="x", padx=16, pady=(10, 16))
@@ -371,6 +392,16 @@ class LabelPrintApp(tk.Tk):
         if idx >= 0:
             self.select_file(idx)
 
+    def on_rotate_left(self) -> None:
+        self.extra_rotation = (self.extra_rotation - 90) % 360
+        self.rotation_label.config(text=f"{self.extra_rotation}°")
+        self.refresh_preview()
+
+    def on_rotate_right(self) -> None:
+        self.extra_rotation = (self.extra_rotation + 90) % 360
+        self.rotation_label.config(text=f"{self.extra_rotation}°")
+        self.refresh_preview()
+
     def select_file(self, index: int) -> None:
         path = self.files[index]
         try:
@@ -410,7 +441,9 @@ class LabelPrintApp(tk.Tk):
             raw_doc.close()
 
             # Fixed, via the same crop+rotate+render pipeline used to print.
-            fixed_doc, fixed_page = core.open_corrected_page(path, page_index, rotate=self.rotate_var.get())
+            fixed_doc, fixed_page = core.open_corrected_page(
+                path, page_index, rotate="auto", extra_rotation=self.extra_rotation,
+            )
             fixed_img = core.render_page(fixed_page, PREVIEW_DPI, PREVIEW_DPI, bilevel=True)
             fixed_w_in, fixed_h_in = fixed_page.rect.width / 72, fixed_page.rect.height / 72
             fixed_doc.close()
@@ -441,7 +474,7 @@ class LabelPrintApp(tk.Tk):
         try:
             src = fitz.open(path)
             for i in pages:
-                core.correct_page(src[i], rotate=self.rotate_var.get())
+                core.correct_page(src[i], rotate="auto", extra_rotation=self.extra_rotation)
             out = fitz.open()
             for i in pages:
                 out.insert_pdf(src, from_page=i, to_page=i)
@@ -486,7 +519,9 @@ class LabelPrintApp(tk.Tk):
                     pages = [0]
 
                 for i in pages:
-                    fdoc, fpage = core.open_corrected_page(path, i, rotate=self.rotate_var.get())
+                    fdoc, fpage = core.open_corrected_page(
+                        path, i, rotate="auto", extra_rotation=self.extra_rotation,
+                    )
                     img = core.render_page(fpage, dpi_x, dpi_y, bilevel=True)
                     fdoc.close()
                     self._set_status(f"Printing {Path(path).name} (page {i + 1}) to '{printer_name}' at {dpi_x}x{dpi_y} DPI...")

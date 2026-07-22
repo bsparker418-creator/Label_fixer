@@ -33,7 +33,7 @@ Usage examples:
     uv run python label_print.py label.pdf --save-pdf corrected.pdf --no-print
 
 Requirements (see pyproject.toml):
-    uv sync                      # installs pymupdf, pillow, numpy (+ pywin32 on Windows)
+    uv sync                      # installs pymupdf, pillow (+ pywin32 on Windows)
     uv run python label_print.py ...
 """
 

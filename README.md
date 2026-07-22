@@ -38,7 +38,7 @@ see what changed before you print, and **Print** is pinned in its own
 pane on the right so it's always fully visible no matter how tall the
 preview gets:
 
-<img src="examples/gui_app.png" width="720" alt="GUI showing the file switcher, side-by-side original/fixed preview, and the Print pane on the right">
+<img src="examples/gui_app_rotate.png" width="720" alt="GUI showing the file switcher, side-by-side original/fixed preview, the rotate-left/rotate-right buttons, and the Print pane on the right">
 
 Try it yourself:
 ```
@@ -71,8 +71,8 @@ or double-click **LabelFixer.bat**.
    currently shown.
 3. The **Preview** card shows **Original (as received)** next to
    **Fixed (what will print)** for whichever file is selected. If the
-   rotation guessed wrong, change the **Rotation** dropdown and both
-   previews update.
+   rotation guessed wrong, nudge it 90° at a time with the **↶ / ↷**
+   rotate buttons and both previews update.
 4. The **Print** pane on the right holds the **Printer** and **Copies**
    controls. Check **Print all pages in this file** for a multi-page
    PDF, or **Print every loaded file** to batch through everything
