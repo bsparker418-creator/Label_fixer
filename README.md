@@ -111,9 +111,13 @@ guesses wrong (some carriers lay labels out differently).
 
 ## Standalone .exe (optional)
 
-Don't want to install uv/Python on the machine that prints labels? Build
-a single self-contained `LabelFixer.exe` (icon included, no console
-window):
+Don't want to install uv/Python on the machine that prints labels?
+Grab the prebuilt `LabelFixer.exe` from the
+[Releases page](https://github.com/bsparker418-creator/Label_fixer/releases/latest) —
+no setup needed, just download and double-click.
+
+Or build it yourself: a single self-contained `LabelFixer.exe` (icon
+included, no console window):
 
 ```
 build_exe.bat
